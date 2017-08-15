@@ -23,6 +23,8 @@ Arguments:
     [ -a | --action ]  ON | OFF | GETSTATE | GETSIGNALSTRENGTH | GETNAME | SETNAME NAME
 
 Optional Arguments: 
+    [ -pm ] Minimum Port Number ( Default: 49152 ) 
+    [ -px ] Maximum Port Number ( Default: 49154 ) 
     [ -s | --silent ]        
     [ -v | --verbose ]        
     [ -V | --very-verbose ]   } 
@@ -214,6 +216,8 @@ filterHumanizeBinary ()
 #123456789o123456789o123456789o123456789o123456789o123456789o123456789o123456789
 # Execution Start Point - Martial Arguments                                    #
 #123456789o123456789o123456789o123456789o123456789o123456789o123456789o123456789
+PORT_BASE=49152
+PORT_MAX=49154
 EXTRACT_VALUE_FROM_RESPONSE="TRUE"
 RUN_ACTION=""
 SET_NAME=""
@@ -233,6 +237,16 @@ do
             DEVICE_HOST="${1}"
             shift
             ;;
+	-px | --portmax )
+	    shift
+	    PORT_MAX="${1}"
+            shift
+	    ;;
+	-pm | --portmin )
+	    shift
+	    PORT_BASE="${1}"
+            shift
+	    ;;
         -a | --action )
             shift
             case ${1} in
@@ -299,15 +313,41 @@ do
     esac
 done
 
+
+
 #123456789o123456789o123456789o123456789o123456789o123456789o123456789o123456789
 # Identify TCP port to use                                                     #
 #123456789o123456789o123456789o123456789o123456789o123456789o123456789o123456789
-PORTTEST="$( curl --silent ${DEVICE_HOST}:49153 | grep "404" )"
-if testEmpty "${PORTTEST}"
+# - Sanity check is port_base a number and less than port_max a number too?
+re='^[0-9]+$'
+if ! [[ ${PORT_BASE} =~ $re &&  ${PORT_MAX} =~ $re ]] ; then
+   echo "Syntax Error - PortMin : ${PORT_BASE} and PortMax : ${PORT_MAX}"
+   usage
+fi
+
+if (( PORT_MAX < PORT_BASE ))
 then
-    PORT=49152
-else
-    PORT=49153
+	echo "Syntax Error - PortMin: ${PORT_BASE} must be less than or equal to PortMax: ${PORT_MAX}"
+	usage
+fi
+
+PORT=${PORT_BASE}
+
+while (( PORT <= PORT_MAX ))
+do
+	PORTTEST="$( curl --silent ${DEVICE_HOST}:${PORT} | grep "404" )"
+	if testEmpty "${PORTTEST}"
+	then
+		(( PORT++ ))
+	else
+		break
+	fi
+done
+
+if (( PORT > PORT_MAX ))
+then
+	echo "Unable to locate a WEMO device."
+	exit 
 fi
 
 #123456789o123456789o123456789o123456789o123456789o123456789o123456789o123456789

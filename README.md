@@ -47,6 +47,8 @@ If you have globally installed the 'wemo' command, you can now run it in your te
                        SETNAME NAME
 
     Optional Arguments: 
+    [ -pm ] Minimum Port Number ( Default: 49152 )
+    [ -px ] Maximum Port Number ( Default: 49154 )
     [ -s | --silent ]        
     [ -v | --verbose ]        
     [ -V | --very-verbose ]   } 
